@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Login</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 1em;
+            text-align: center;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2em 1em;
+        }
+
+        .login-container {
+            background: #fff;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-container h1 {
+            text-align: center;
+            margin-bottom: 1.5em;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.2em;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5em;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 0.5em;
+        }
+
+        .btn:hover {
+            background: #555;
+        }
+
+        .error {
+            color: #d32f2f;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 1.5em;
+        }
+
+        .links a {
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 1em;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .exam-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 1.5em;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>100L CBT Portal</h2>
+    </header>
+
+    <main>
+        <div class="login-container">
+            <h1>Student Login</h1>
+            
+            <div class="exam-info">
+                Use your Name and password to login
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" placeholder="e.g. OLOPETE OREOLUWA" required>
+                    <div class="error" id="nameError">Enter a valid Name</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                    <div class="error" id="passwordError">Password is required</div>
+                </div>
+
+                <!-- REMOVED onclick. Let the JS handle redirect -->
+                <button type="submit" class="btn">Login</button>
+                
+
+                <div class="links">
+                    <a href="index.html">Forgot Password?</a> | 
+                    <a href="bbg.html">New Student? Register</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 100L CBT Courses Portal</p>
+    </footer>
+
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        let isValid = true;
+        const name = document.getElementById('name').value.trim();
+        const password = document.getElementById('password').value;
+        
+        // Reset errors
+        document.getElementById('nameError').style.display = 'none';
+        document.getElementById('passwordError').style.display = 'none';
+        document.getElementById('passwordError').textContent = "Password is required";
+        
+        // Basic validation
+        if (name.length < 3) {
+            document.getElementById('nameError').textContent = 'Enter your full name';
+            document.getElementById('nameError').style.display = 'block';
+            isValid = false;
+        }
+        
+        if (password.length < 6) {
+            document.getElementById('passwordError').textContent = 'Password must be 6+ characters';
+            document.getElementById('passwordError').style.display = 'block';
+            isValid = false;
+        }
+        
+        if (isValid) {
+            let users = JSON.parse(localStorage.getItem('cbt_users') || '[]');
+            const user = users.find(u => u.name === name && u.password === password);
+            
+            if (!user) {
+                document.getElementById('passwordError').textContent = "Invalid name or password";
+                document.getElementById('passwordError').style.display = 'block';
+                return; 
+            }
+            
+            sessionStorage.setItem('cbt_currentUser', JSON.stringify(user));
+            alert('Login successful! Redirecting to exam 👑');
+            window.location.href = 'dashboard.html';
+        }
+    });
+    localStorage.setItem('cbt_student', data.name);
+     </script>
+</body>
+</html>

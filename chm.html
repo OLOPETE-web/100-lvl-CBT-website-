@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CBT Random Questions</title>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+.q { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+.q p { margin: 0 0 10px 0; font-size: 16px; }
+  label { display: block; margin: 8px 0; cursor: pointer; }
+  button { padding: 12px 24px; margin: 10px 5px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+.btn-primary { background: #007bff; color: white; }
+.btn-danger { background: #dc3545; color: white; }
+.btn-time { background: #e9ecef; color: #333; }
+.btn-time.active { background: #007bff; color: white; }
+.timer {
+    position: sticky; top: 10px; background: #ff9800; color: white;
+    padding: 10px; text-align: center; font-size: 18px; font-weight: bold;
+    border-radius: 6px; margin-bottom: 15px; display: none; z-index: 100;
+  }
+.stats-box {
+    background:#f5f5f5; padding:20px; border-radius:8px; margin-bottom:20px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Select Test Type</h2>
+
+<div id="setup">
+  <h4>1. Choose number of questions:</h4>
+  <button class="btn-primary" onclick="selectQuestions(15)">15 Questions</button>
+  <button class="btn-primary" onclick="selectQuestions(30)">30 Questions</button>
+  <button class="btn-primary" onclick="selectQuestions(50)">50 Questions</button>
+
+  <h4>2. Choose time:</h4>
+  <div id="timeOptions">
+    <button class="btn-time" onclick="selectTime(15)">15 mins</button>
+    <button class="btn-time" onclick="selectTime(30)">30 mins</button>
+    <button class="btn-time" onclick="selectTime(45)">45 mins</button>
+    <button class="btn-time" onclick="selectTime(60)">1 hr</button>
+    <button class="btn-time" onclick="selectTime(90)">1 hr 30 mins</button>
+  </div>
+
+  <br>
+  <button class="btn-primary" onclick="startTest()" id="startBtn" disabled>Start Test</button>
+  <button class="btn-danger" onclick="resetSeenQuestions()">Reset Questions</button>
+</div>
+
+<div class="timer" id="timer"></div>
+<div id="quiz"></div>
+
+<script>
+// REPLACE THIS WITH YOUR 210 QUESTIONS
+const questionBank = [
+  {id: 1, q: "What is 2 + 2?", a: ["3","4","5","6"], correct: "4"},
+  {id: 2, q: "What is the capital of Nigeria?", a: ["Lagos","Abuja","Kano","Port Harcourt"], correct: "Abuja"},
+  {id: 3, q: "The Aufbau principle adds electrons to orbitals of:", a: ["Highest energy first","Lowest energy first","Random","p before s"], correct: "Lowest energy first"},
+];
+
+let testQuestions = [];
+let userAnswers = [];
+let selectedNumQuestions = 0;
+let selectedTimeMinutes = 0;
+let timerInterval = null;
+let timeLeft = 0;
+let showOnlyWrong = false;
+
+function selectQuestions(num){
+  selectedNumQuestions = num;
+  checkReady();
+}
+
+function selectTime(mins){
+  selectedTimeMinutes = mins;
+  document.querySelectorAll('.btn-time').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  checkReady();
+}
+
+function checkReady(){
+  if(selectedNumQuestions > 0 && selectedTimeMinutes > 0){
+    document.getElementById("startBtn").disabled = false;
+  }
+}
+
+function startTest(){
+  const courseId = "math101";
+  const studentId = "student123";
+  const storageKey = `seen_${studentId}_${courseId}`;
+
+  let seenIds = JSON.parse(localStorage.getItem(storageKey) || "[]");
+  let available = questionBank.filter(q =>!seenIds.includes(q.id));
+
+  if(available.length < selectedNumQuestions){
+    localStorage.removeItem(storageKey);
+    seenIds = [];
+    available = questionBank;
+  }
+
+  testQuestions = shuffleArray(available).slice(0, selectedNumQuestions);
+
+  let newSeenIds = [...seenIds,...testQuestions.map(q => q.id)];
+  localStorage.setItem(storageKey, JSON.stringify(newSeenIds));
+
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("timer").style.display = "block";
+
+  startTimer(selectedTimeMinutes * 60);
+  displayQuestions(testQuestions);
+}
+
+function shuffleArray(arr){
+  let array = [...arr];
+  for(let i=array.length-1; i>0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function displayQuestions(questions){
+  let html = "<h3>Your Test</h3>";
+
+  questions.forEach((q, index) => {
+    html += `<div class="q">
+      <p><b>${index+1}. ${q.q}</b></p>
+      ${q.a.map(opt => `
+        <label>
+          <input type="radio" name="q${index}" value="${opt}"> ${opt}
+        </label>
+      `).join('')}
+    </div>`;
+  });
+
+  html += `<button class="btn-primary" onclick="submitTest()">Submit</button>`;
+  document.getElementById("quiz").innerHTML = html;
+}
+
+function startTimer(seconds){
+  timeLeft = seconds;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      alert("Time's up! Submitting your test automatically.");
+      submitTest();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay(){
+  let mins = Math.floor(timeLeft / 60);
+  let secs = timeLeft % 60;
+  document.getElementById("timer").textContent =
+    `Time Left: ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+}
+
+function submitTest(){
+  clearInterval(timerInterval);
+  userAnswers = [];
+
+  let correctCount = 0;
+  let wrongCount = 0;
+
+  testQuestions.forEach((q, index) => {
+    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+    const userAns = selected? selected.value : "Not Answered";
+    const isCorrect = userAns === q.correct;
+
+    if(isCorrect) correctCount++;
+    else wrongCount++;
+
+    userAnswers.push({
+      question: q.q,
+      userAnswer: userAns,
+      correctAnswer: q.correct,
+      isCorrect: isCorrect,
+      originalIndex: index + 1
+    });
+  });
+
+  const total = testQuestions.length;
+  const percentCorrect = ((correctCount / total) * 100).toFixed(1);
+  const percentWrong = ((wrongCount / total) * 100).toFixed(1);
+
+  displayResults(correctCount, wrongCount, total, percentCorrect, percentWrong);
+}
+
+function displayResults(correct, wrong, total, percentCorrect, percentWrong){
+  document.getElementById("timer").style.display = "none";
+
+  let html = `
+    <h2>Test Submitted!</h2>
+
+    <div class="stats-box">
+      <h3>Score Statistics</h3>
+      <p><b>Total Questions:</b> ${total}</p>
+      <p style="color:green;"><b>Correct:</b> ${correct} (${percentCorrect}%)</p>
+      <p style="color:red;"><b>Wrong/Not Answered:</b> ${wrong} (${percentWrong}%)</p>
+      <p><b>Score:</b> ${correct}/${total}</p>
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <button id="toggleBtn" class="btn-primary" onclick="toggleReview()">
+        ${showOnlyWrong? 'Show All Questions' : 'Show Only Wrong Answers'}
+      </button>
+    </div>
+
+    <h3>Question Review</h3>
+    <div id="reviewContainer">
+  `;
+
+  const questionsToShow = showOnlyWrong
+   ? userAnswers.filter(item =>!item.isCorrect)
+    : userAnswers;
+
+  questionsToShow.forEach((item) => {
+    const statusColor = item.isCorrect? "green" : "red";
+    const statusText = item.isCorrect? "✓ Correct" : "✗ Wrong";
+
+    html += `
+      <div class="q" style="border-left: 5px solid ${statusColor};">
+        <p><b>${item.originalIndex}. ${item.question}</b>
+           <span style="color:${statusColor}; float:right;">${statusText}</span>
+        </p>
+        <p><b>Your Answer:</b> ${item.userAnswer}</p>
+        ${!item.isCorrect? `<p style="color:green;"><b>Correct Answer:</b> ${item.correctAnswer}</p>` : ''}
+      </div>
+    `;
+  });
+
+  html += `</div>
+    <button class="btn-primary" onclick="location.reload()">Take Another Test</button>`;
+
+  document.getElementById("quiz").innerHTML = html;
+}
+
+function toggleReview(){
+  showOnlyWrong =!showOnlyWrong;
+  const correct = userAnswers.filter(a => a.isCorrect).length;
+  const wrong = userAnswers.length - correct;
+  const total = userAnswers.length;
+  const percentCorrect = ((correct / total) * 100).toFixed(1);
+  const percentWrong = ((wrong / total) * 100).toFixed(1);
+
+  displayResults(correct, wrong, total, percentCorrect, percentWrong);
+}
+
+function resetSeenQuestions(){
+  const courseId = "math101";
+  const studentId = "student123";
+  const storageKey = `seen_${studentId}_${courseId}`;
+  localStorage.removeItem(storageKey);
+  alert("Question history reset.");
+  location.reload();
+}
+</script>
+</body>
+</html>
